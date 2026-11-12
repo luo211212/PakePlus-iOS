@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>帜彩辅料 | 水洗标报价</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:#f4f5f7;padding:14px;color:#333}
+.wrap{max-width:540px;margin:0 auto;background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.title{text-align:center;font-size:18px;font-weight:600;margin-bottom:20px;color:#222}
+.item{margin-bottom:16px}
+label{display:block;font-size:14px;margin-bottom:6px;color:#444}
+input,select{width:100%;height:44px;padding:0 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;background:#fff}
+.check-group{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0}
+.check-item{display:flex;align-items:center;gap:3px;font-size:13px}
+.check-item input[type="checkbox"]{width:14px;height:14px}
+.btn-row{display:flex;gap:10px;margin-top:6px}
+button{flex:1;height:48px;border:none;border-radius:8px;font-size:16px;font-weight:600;
+touch-action: manipulation;
+cursor: pointer;
+-webkit-tap-highlight-color: transparent;
+}
+#calcBtn{background:#2563eb;color:#fff;}
+#resetBtn{background:#888;color:#fff;}
+.result{margin-top:18px;padding:16px;background:#f0f7ff;border-radius:10px;display:none}
+.result p{font-size:14px;line-height:1.7;margin-bottom:4px}
+.total-line{font-size:17px;font-weight:700;color:#2563eb;margin-top:8px}
+.tip{margin-top:12px;font-size:13px;color:#666;text-align:center}
+.tip a{color:#2563eb;text-decoration:none}
+.copy-btn{margin-top:12px;background:#fff;color:#2563eb;border:1px solid #2563eb;height:44px;font-size:14px;width:100%}
+.toast{position:fixed;left:50%;top:40%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 16px;border-radius:6px;font-size:14px;z-index:9999;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">帜彩辅料 水洗标报价计算器</div>
+
+  <div class="item">
+    <label>产品类型</label>
+    <select id="productType">
+      <option value="single">单色水洗标</option>
+      <option value="color">彩印水洗标</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <label>底材材质</label>
+    <select id="material">
+      <option value="普通材质">普通材质</option>
+      <option value="普通缎带">普通缎带</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <label>宽度 cm</label>
+    <input type="text" inputmode="decimal" id="width" placeholder="例：2">
+  </div>
+
+  <div class="item">
+    <label>长度 cm</label>
+    <input type="text" inputmode="decimal" id="length" placeholder="例：5">
+  </div>
+
+  <div class="item">
+    <label>订购数量（3000个起订）</label>
+    <input type="text" inputmode="numeric" id="qty" placeholder="例：3000">
+  </div>
+
+  <div class="item">
+    <label>后道工艺（可多选）</label>
+    <div class="check-group">
+      <div class="check-item"><input type="checkbox" class="process" value="裁切">裁切</div>
+      <div class="check-item"><input type="checkbox" class="process" value="切理">切理</div>
+      <div class="check-item"><input type="checkbox" class="process" value="剪折">剪折</div>
+    </div>
+  </div>
+
+  <div class="item">
+    <label>是否新版（新版收版费）</label>
+    <select id="newVersion">
+      <option value="0">否｜翻单，无版费</option>
+      <option value="1">是｜新版，收取版费</option>
+    </select>
+  </div>
+
+  <div class="btn-row">
+    <button id="calcBtn">计算报价</button>
+    <button id="resetBtn">清空表单</button>
+  </div>
+
+  <div class="result" id="resultBox">
+    <p>产品类型：<span id="rType"></span></p >
+    <p>底材材质：<span id="rMat"></span></p >
+    <p>规格尺寸：<span id="rW"></span> cm × <span id="rL"></span> cm</p >
+    <p>订购数量：<span id="rQty"></span> 个</p >
+    <p>后道工艺：<span id="rProc"></span></p >
+    <p>材料金额：<span id="rMatPrice"></span> 元</p >
+    <p>工艺费用：<span id="rProcPrice"></span> 元</p >
+    <p>版费：<span id="rPlate"></span> 元</p >
+    <p class="total-line">合计报价：<span id="rTotal"></span> 元</p >
+    <p class="tip">以上为参考报价，详细价格联系<a href=" ">15558057986</a >详聊</p >
+    <button class="copy-btn" id="copyBtn">一键复制报价</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let quoteText = "";
+const toastDom = document.getElementById("toast");
+
+function showToast(msg){
+  toastDom.innerText = msg;
+  toastDom.style.display = "block";
+  setTimeout(()=>{toastDom.style.display="none"},1600);
+}
+function cleanNumStr(s){
+  return s.trim().replace(/，/g,".").replace(/[０-９]/g,function(c){
+    return String.fromCharCode(c.charCodeAt(0)-0xFEE0);
+  })
+}
+
+function calc(){
+  const wInput = document.getElementById("width");
+  const lInput = document.getElementById("length");
+  const qtyInput = document.getElementById("qty");
+
+  const wStr = cleanNumStr(wInput.value);
+  const lStr = cleanNumStr(lInput.value);
+  const qtyStr = cleanNumStr(qtyInput.value);
+
+  const w = parseFloat(wStr);
+  const l = parseFloat(lStr);
+  const qty = parseFloat(qtyStr);
+
+  if(wStr === ""){showToast("请输入宽度");return;}
+  if(isNaN(w) || w <= 0){showToast("宽度必须大于0");return;}
+  if(lStr === ""){showToast("请输入长度");return;}
+  if(isNaN(l) || l <= 0){showToast("长度必须大于0");return;}
+  if(qtyStr === ""){showToast("请输入订购数量");return;}
+  if(isNaN(qty) || qty < 3000){showToast("数量不能小于3000");return;}
+
+  const typeVal = document.getElementById("productType").value;
+  const matVal = document.getElementById("material").value;
+  const newVer = Number(document.getElementById("newVersion").value);
+  const checks = Array.from(document.querySelectorAll(".process:checked"));
+  const procName = checks.map(i=>i.value).join("、") || "无";
+
+  const priceSqm = typeVal === "single" ? 11 : 25;
+  const area = (w/100)*(l/100);
+  const matTotal = area * priceSqm * qty;
+
+  let procUnit = 0;
+  checks.forEach(i=>{
+    if(i.value==="裁切") procUnit +=0.0015;
+    if(i.value==="切理") procUnit +=0.004;
+    if(i.value==="剪折") procUnit +=0.005;
+  })
+  const procTotal = procUnit * qty;
+  const plate = newVer ===1 ? w * 8 : 0;
+  const total = matTotal + procTotal + plate;
+
+  quoteText = `帜彩辅料报价：
+产品类型：${typeVal==="single"?"单色水洗标":"彩印水洗标"}
+底材材质：${matVal}
+规格尺寸：${w}cm × ${l}cm
+订购数量：${qty}个
+后道工艺：${procName}
+材料金额：${matTotal.toFixed(2)}元
+工艺费用：${procTotal.toFixed(2)}元
+版费：${plate.toFixed(2)}元
+合计报价：${total.toFixed(2)}元
+以上为参考报价，详细价格联系：15558057986`
+
+  document.getElementById("rType").innerText = typeVal==="single"?"单色水洗标":"彩印水洗标";
+  document.getElementById("rMat").innerText = matVal;
+  document.getElementById("rW").innerText = w;
+  document.getElementById("rL").innerText = l;
+  document.getElementById("rQty").innerText = qty;
+  document.getElementById("rProc").innerText = procName;
+  document.getElementById("rMatPrice").innerText = matTotal.toFixed(2);
+  document.getElementById("rProcPrice").innerText = procTotal.toFixed(2);
+  document.getElementById("rPlate").innerText = plate.toFixed(2);
+  document.getElementById("rTotal").innerText = total.toFixed(2);
+  document.getElementById("resultBox").style.display = "block";
+}
+
+function copyQuote(){
+  const txt = document.createElement("textarea");
+  txt.value = quoteText;
+  txt.style.position = "absolute";
+  txt.style.left = "-9999px";
+  document.body.appendChild(txt);
+  txt.select();
+  try{
+    document.execCommand("copy");
+    showToast("报价复制成功！");
+  }catch(e){
+    showToast("复制失败，请手动复制");
+  }
+  document.body.removeChild(txt);
+}
+
+// 清空表单
+function resetForm(){
+  document.getElementById("width").value = "";
+  document.getElementById("length").value = "";
+  document.getElementById("qty").value = "";
+  document.getElementById("productType").value = "single";
+  document.getElementById("material").value = "普通材质";
+  document.getElementById("newVersion").value = "0";
+  document.querySelectorAll(".process").forEach(el=>el.checked=false);
+  document.getElementById("resultBox").style.display = "none";
+  quoteText = "";
+  showToast("已清空");
+}
+
+window.onload = function(){
+  document.getElementById("calcBtn").addEventListener("click", calc);
+  document.getElementById("copyBtn").addEventListener("click", copyQuote);
+  document.getElementById("resetBtn").addEventListener("click", resetForm);
+}
+</script>
+</body>
+</html>
